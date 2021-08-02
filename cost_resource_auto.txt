@@ -1,0 +1,416 @@
+//-----------------------------------------------------------------------------------
+// BuildingResourceCostAuto
+//----------------------------------------------------------------------------------
+void SOVIET_GAME::BuildingResourceCostAuto(SOVIET_BUILDING_TYPES* a_Type,   //type of building for which enumerate cost
+	int a_CostructionPhase,          //phase of construction
+	char* a_CostType, float a_Mul)                //type of construction
+
+{
+
+	//
+	// TOTAL COST TWEAK MUL
+	a_Mul *= 0.5f;
+
+	//-------------------------------------
+	// Get List of nodes
+	//-------------------------------------
+
+	std::vector<SOVIET_BUILDING_TYPE_NODE> NodeList;
+
+	SOVIET_BUILDING_TYPES* Building = a_Type;
+	int cw = a_CostructionPhase;
+
+	//
+	// No Nodes
+	if (strlen(Building->Cost_ConstructionWorks[cw].BuildingMaskNames) == 0)
+	{
+		return;
+	}
+	//
+	// All nodes
+	else if (strcmp(Building->Cost_ConstructionWorks[cw].BuildingMaskNames, "$all") == 0)
+	{
+		for (unsigned int n = 0; n < Building->PreLoadNodes.size(); n++)
+			NodeList.push_back(Building->PreLoadNodes[n]);
+	}
+	//
+	//specific nodes by mask
+	else if (Building->Cost_ConstructionWorks[cw].BuildingMaskNames[0] == '$')
+	{
+		char StartIdent[256];
+		strcpy(StartIdent, &Building->Cost_ConstructionWorks[cw].BuildingMaskNames[1]);
+
+		int act_node = 0;
+		for (unsigned int n = 0; n < Building->PreLoadNodes.size(); n++)
+		{
+			bool AllMatch = true;
+
+			for (int s = 0; s < strlen(StartIdent); s++)
+				if (StartIdent[s] != Building->PreLoadNodes[n].Name[s])
+				{
+					AllMatch = false;
+					break;
+				}
+
+			if (AllMatch)
+			{
+				NodeList.push_back(Building->PreLoadNodes[n]);
+			}
+		}
+	}
+	//
+	// specific nodes by names
+	else
+	{
+
+		for (int m = 0; m < SOVIET_BUILDING_CONSTRUCTION_WORK_MASK_SIZE; m++)
+		{
+			if (strlen(&Building->Cost_ConstructionWorks[cw].BuildingMaskNames[m * 256]) == 0)
+			{
+			}
+			else
+			{
+				for (unsigned int n = 0; n < Building->PreLoadNodes.size(); n++)
+				{
+					if (strcmp(&Building->Cost_ConstructionWorks[cw].BuildingMaskNames[m * 256], Building->PreLoadNodes[n].Name) == 0)
+						NodeList.push_back(Building->PreLoadNodes[n]);
+				}
+			}
+		}
+	}
+
+
+	//-------------------------------------
+	// Get Critical Values
+	//-------------------------------------
+
+	float Volume = 0.0f;
+	float Ground = 0.0f;
+	float Walls = 0.0f;
+
+	for (unsigned int n = 0; n < NodeList.size(); n++)
+	{
+
+		Volume += (NodeList[n].BBox.maxPt.z - NodeList[n].BBox.minPt.z) *
+			(NodeList[n].BBox.maxPt.x - NodeList[n].BBox.minPt.x) *
+			(NodeList[n].BBox.maxPt.y - NodeList[n].BBox.minPt.y);
+
+		Ground += (NodeList[n].BBox.maxPt.z - NodeList[n].BBox.minPt.z) *
+			(NodeList[n].BBox.maxPt.x - NodeList[n].BBox.minPt.x);
+
+		Walls += (NodeList[n].BBox.maxPt.z - NodeList[n].BBox.minPt.z) *
+			(NodeList[n].BBox.maxPt.y - NodeList[n].BBox.minPt.y) * 2.0f;
+
+		Walls += (NodeList[n].BBox.maxPt.x - NodeList[n].BBox.minPt.x) *
+			(NodeList[n].BBox.maxPt.y - NodeList[n].BBox.minPt.y) * 2.0f;
+
+	}
+
+
+	Ground /= 10.0f * 10.0f;
+	Walls /= 10.0f * 10.0f;
+	Volume /= 10.0f * 10.0f * 10.0f;
+
+	Ground /= 3.0f;
+	Walls /= 3.0f;
+	Volume /= 3.0f;
+
+	//-------------------------------------
+	// Add cost
+	//-------------------------------------
+
+	RESOURCE_COST NewCost;
+	NewCost.Value = 0.0f;
+
+
+	//
+	// Ground works
+	/////////////////////////////////////////////////////////////////
+	if (strcmp(a_CostType, "ground") == 0 ||
+		strcmp(a_CostType, "ground_asphalt") == 0)
+	{
+		float FinalFactor = Ground + 0.08f * Volume;
+		FinalFactor *= a_Mul;
+
+		NewCost.Resource = ResourceGet("workers");
+		NewCost.Value = 150.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("concrete");
+		NewCost.Value = 13.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("gravel");
+		NewCost.Value = 10.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		if (strcmp(a_CostType, "ground_asphalt") == 0)
+		{
+			NewCost.Resource = ResourceGet("asphalt");
+			NewCost.Value = 8.0f * FinalFactor;
+			Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+		}
+	}
+
+	// Walls
+	/////////////////////////////////////////////////////////////////
+
+	//
+	// Concrete - skeleton casting
+	if (strcmp(a_CostType, "wall_concrete") == 0)
+	{
+		float FinalFactor = Walls + 0.3f * Volume;
+		FinalFactor *= a_Mul;
+
+		NewCost.Resource = ResourceGet("workers");
+		NewCost.Value = 100 * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("concrete");
+		NewCost.Value = 22.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("steel");
+		NewCost.Value = 5.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+	}
+
+	//
+	// Panels
+	if (strcmp(a_CostType, "wall_panels") == 0)
+	{
+		float FinalFactor = Walls + 0.3f * Volume;
+		FinalFactor *= a_Mul;
+
+		NewCost.Resource = ResourceGet("workers");
+		NewCost.Value = 65 * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("prefabpanels");
+		NewCost.Value = 10.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("steel");
+		NewCost.Value = 1.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+	}
+
+	//
+	// brick
+	if (strcmp(a_CostType, "wall_brick") == 0)
+	{
+		float FinalFactor = Walls + 0.3f * Volume;
+		FinalFactor *= a_Mul;
+
+		NewCost.Resource = ResourceGet("workers");
+		NewCost.Value = 140 * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("bricks");
+		NewCost.Value = 12.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("boards");
+		NewCost.Value = 4.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("steel");
+		NewCost.Value = 1.5f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+	}
+
+	//
+	// steel
+	if (strcmp(a_CostType, "wall_steel") == 0)
+	{
+		float FinalFactor = Walls + 0.3f * Volume;
+		FinalFactor *= a_Mul;
+
+		NewCost.Resource = ResourceGet("workers");
+		NewCost.Value = 90 * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("steel");
+		NewCost.Value = 8.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+	}
+
+	//
+	// wood
+	if (strcmp(a_CostType, "wall_wood") == 0)
+	{
+		float FinalFactor = Walls + 0.3f * Volume;
+		FinalFactor *= a_Mul;
+
+		NewCost.Resource = ResourceGet("workers");
+		NewCost.Value = 90 * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("boards");
+		NewCost.Value = 10.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+	}
+
+	// Technology stuff
+	/////////////////////////////////////////////////////////////////
+
+	if (strcmp(a_CostType, "tech_steel") == 0)
+	{
+		float FinalFactor = 0.25f * Walls + 0.8f * Volume;
+		FinalFactor *= a_Mul;
+
+		NewCost.Resource = ResourceGet("workers");
+		NewCost.Value = 170 * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("steel");
+		NewCost.Value = 6.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("mcomponents");
+		NewCost.Value = 1.25f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+	}
+
+	if (strcmp(a_CostType, "techelectro_steel") == 0)
+	{
+		float FinalFactor = 0.25f * Walls + 0.8f * Volume;
+		FinalFactor *= a_Mul;
+
+		NewCost.Resource = ResourceGet("workers");
+		NewCost.Value = 190 * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("steel");
+		NewCost.Value = 5.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("mcomponents");
+		NewCost.Value = 0.85f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("ecomponents");
+		NewCost.Value = 0.55f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+	}
+
+	if (strcmp(a_CostType, "electro_steel") == 0)
+	{
+		float FinalFactor = 0.25f * Walls + 0.8f * Volume;
+		FinalFactor *= a_Mul;
+
+		NewCost.Resource = ResourceGet("workers");
+		NewCost.Value = 170 * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("steel");
+		NewCost.Value = 6.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("ecomponents");
+		NewCost.Value = 1.25f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+	}
+
+
+	// Rooftops
+	/////////////////////////////////////////////////////////////////
+
+	if (strcmp(a_CostType, "roof_woodbrick") == 0)
+	{
+
+		float FinalFactor = Ground + 0.05f * Volume;
+		FinalFactor *= a_Mul;
+
+		NewCost.Resource = ResourceGet("workers");
+		NewCost.Value = 87 * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("bricks");
+		NewCost.Value = 2.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("boards");
+		NewCost.Value = 10.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+	}
+
+	if (strcmp(a_CostType, "roof_steel") == 0)
+	{
+		float FinalFactor = Ground + 0.05f * Volume;
+		FinalFactor *= a_Mul;
+
+		NewCost.Resource = ResourceGet("workers");
+		NewCost.Value = 95 * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("steel");
+		NewCost.Value = 7.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+	}
+
+	if (strcmp(a_CostType, "roof_woodsteel") == 0)
+	{
+		float FinalFactor = Ground + 0.05f * Volume;
+		FinalFactor *= a_Mul;
+
+		NewCost.Resource = ResourceGet("workers");
+		NewCost.Value = 85 * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("steel");
+		NewCost.Value = 3.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+		NewCost.Resource = ResourceGet("boards");
+		NewCost.Value = 5.0f * FinalFactor;
+		Building->Cost_ConstructionWorks[cw].Cost_Resources.push_back(NewCost);
+
+	}
+
+
+
+
+	//-------------------------------------
+	// check cost if not something to merge
+	//-------------------------------------
+
+	while (1)
+	{
+		bool AllClear = true;
+
+		for (int i = (int)Building->Cost_ConstructionWorks[cw].Cost_Resources.size() - 1; i >= 0; i--)
+		{
+			for (int r = i - 1; r >= 0; r--)
+			{
+
+				//merge if same
+				if (Building->Cost_ConstructionWorks[cw].Cost_Resources[i].Resource ==
+					Building->Cost_ConstructionWorks[cw].Cost_Resources[r].Resource)
+				{
+
+					Building->Cost_ConstructionWorks[cw].Cost_Resources[r].Value += Building->Cost_ConstructionWorks[cw].Cost_Resources[i].Value;
+
+					Building->Cost_ConstructionWorks[cw].Cost_Resources.erase(Building->Cost_ConstructionWorks[cw].Cost_Resources.begin() + i);
+
+					AllClear = false;
+
+					break;
+				}
+			}
+
+			if (AllClear == false)
+				break;
+		}
+
+		if (AllClear)
+			break;
+
+	}
+
+
+}
