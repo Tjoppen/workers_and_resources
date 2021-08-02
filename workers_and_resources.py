@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 import os
 import struct
+import json
+from collections import OrderedDict
 
 d = 'media_soviet/buildings_types'
 goods = set()
-#COST_WORK_BUILDING_NODE = set()
-#COST_RESOURCE_AUTO = set()
-#COST_RESOURCE_AUTO2 = {}
-#COST_RESOURCE_AUTO3 = {}
-n = 0
 
-# other crap to ignore
+# crap to ignore
 ignore = [
   '$CONNECTION',
   '0',
@@ -65,7 +62,6 @@ ignore = [
   '$SUBTYPE_AIR',
   '$SUBTYPE_AIRCUSTOM',
   '$CIVIL_BUILDING',
-  #'$COST_WORK_BUILDING_ALL',
   '$ROADVEHICLE_NOTFLIP',
   '$ELETRIC_CONSUMPTION_LIVING_WORKER_FACTOR',
   '$ELETRIC_CONSUMPTION_LIGHTING_WORKER_FACTOR',
@@ -111,28 +107,27 @@ ignore = [
 # hard mode, 1960
 autos = ['tech_steel', 'wall_steel', 'electro_steel', 'steel', 'techelectro_steel', 'ground', 'wall_panels', 'wall_bricks', 'wall_wood', 'roof_woodbrick', 'roof_asphalt', 'wall_concrete', 'wall_brick', 'roof_woodsteel', 'roof_steel', 'ground_asphalt']
 
-# for $COST_RESOURCE
+# order of fields in auto_dict, after ground, walls and volume
 fields = ['workers', 'concrete', 'gravel', 'asphalt', 'bricks', 'boards', 'steel', 'mcomponents', 'ecomponents', 'prefabpanels']
 
 auto_dict = {
   # Auto: (Ground, Walls, Volume, Workdays, Concrete, Gravel, Asphalt, Bricks, Boards, Steel, Mech C, Elec C, Prefab)
+  'ground':           (1,0,0.08,    150,13,10,0,0,0,0,0,0,0),
   'ground_asphalt':   (1,0,0.08,    150,13,10,8,0,0,0,0,0,0),
-  'electro_steel':    (0,0.25,0.8,  170,0,0,0,0,0,6,0,1.25,0),
+  'wall_concrete':    (0,1,0.3,     100,22,0,0,0,0,5,0,0,0),
+  'wall_panels':      (0,1,0.3,     65,0,0,0,0,0,1,0,0,10),
+  'wall_brick':       (0,1,0.3,     140,0,0,0,12,4,1.5,0,0,0),
+  'wall_steel':       (0,1,0.3,     90,0,0,0,0,0,8,0,0,0),
+  'wall_wood':        (0,1,0.3,     90,0,0,0,0,10,0,0,0,0),
   'tech_steel':       (0,0.25,0.8,  170,0,0,0,0,0,6,1.25,0,0),
-
-  'ground': (1,0,0.08,150,13,10,0,0,0,0,0,0,0),
-  'wall_concrete': (0,1,0.3,100,22,0,0,0,0,5,0,0,0),
-  'wall_panels': (0,1,0.3,65,0,0,0,0,0,1,0,0,10),
-  'wall_brick': (0,1,0.3,140,0,0,0,12,4,1.5,0,0,0),
-  'wall_steel': (0,1,0.3,90,0,0,0,0,0,8,0,0,0),
-  'wall_wood': (0,1,0.3,90,0,0,0,0,10,0,0,0,0),
-  'techelectro_steel': (0,0.25,0.8,190,0,0,0,0,0,5,0.85,0.55,0),
-  'roof_woodbrick': (1,0,0.05,87,0,0,0,2,10,0,0,0,0),
-  'roof_steel': (1,0,0.05,95,0,0,0,0,0,7,0,0,0),
-  'roof_woodsteel': (1,0,0.05,85,0,0,0,0,5,3,0,0,0),
+  'techelectro_steel':(0,0.25,0.8,  190,0,0,0,0,0,5,0.85,0.55,0),
+  'electro_steel':    (0,0.25,0.8,  170,0,0,0,0,0,6,0,1.25,0),
+  'roof_woodbrick':   (1,0,0.05,    87,0,0,0,2,10,0,0,0,0),
+  'roof_steel':       (1,0,0.05,    95,0,0,0,0,0,7,0,0,0),
+  'roof_woodsteel':   (1,0,0.05,    85,0,0,0,0,5,3,0,0,0),
 }
 
-# These are ordered in complexity. Each row has at most row# number of non-zeroes
+# These are ordered by complexity. Each row has at most row# number of non-zeroes
 # airplaneparking_30.ini -> ground_asphalt
 # eletric_switch_low.ini -> electro_steel
 # road_pumping_station_v2.ini -> tech_steel
@@ -169,14 +164,12 @@ RE = [
 'co_beach.ini',
 ]
 
-#outstats = [()]*16
-
 costs_dict = {}
 
 for e in os.listdir(d):
 #for e in ['coal_mine.ini']:
 #for e in RE:
-  # fields have zero cost
+  # crop fields have zero cost, don't bother with them
   if e[:6] == 'field_':
     continue
 
@@ -187,24 +180,6 @@ for e in os.listdir(d):
     # parse .bbox into shapes
     with open(d+'/'+e.replace('.ini','.bbox'), 'rb') as f:
       numshapes = struct.unpack('I', f.read(4))[0]
-      #COST_RESOURCE_AUTO2[e] = set()
-      #auto_mask = '0'*len(autos)
-
-      #print(e)
-      #print(numshapes)
-      '''
-      atot = 0
-      wtot = 0
-      vtot = 0
-      ctot = 0
-      xminmin = None
-      yminmin = None
-      zminmin = None
-      xmaxmax = None
-      ymaxmax = None
-      zmaxmax = None
-      '''
-      
       for i in range(numshapes):
         name, index, xmin, ymin, zmin, xmax, ymax, zmax = struct.unpack('512sIffffff', f.read(540))
         name = name[0:name.find(b'\0')].decode('ascii')
@@ -212,84 +187,22 @@ for e in os.listdir(d):
         ys = ymax - ymin
         zs = zmax - zmin
 
-        '''
-        if xminmin is None:
-          xminmin = xmin
-          yminmin = ymin
-          zminmin = zmin
-          xmaxmax = xmax
-          ymaxmax = ymax
-          zmaxmax = zmax
-
-        xminmin = min(xminmin, xmin)
-        yminmin = min(yminmin, ymin)
-        zminmin = min(zminmin, zmin)
-        xmaxmax = max(xmaxmax, xmax)
-        ymaxmax = max(ymaxmax, ymax)
-        zmaxmax = max(zmaxmax, zmax)
-
-        v = xs*ys*zs # volume
-        a = xs*zs # area
-        c = 2*xs + 2*zs # circumference
-        w = c*ys # wall area
-
-        vtot += v
-        atot += a
-        ctot += c
-        wtot += w
-        '''
-
-        #if 'cement_plant' in e and 'ground' in name:
-        #  print("   %30s %f" % (name, v))
         shapes[name] = (xs, ys, zs)
 
         # ys == 0 happens for flat planes (y = vertical)
         if (min(xs, zs) <= 0 or ys < 0)and len(name) > 0:
           print('bork')
           exit(1)
-      
-      '''
-      try:
-        #print(RE)
-        i = RE.index(e)
-        outstats[i] = (
-          atot,
-          ctot,
-          vtot,
-          wtot,
-          (xmaxmax-xminmin)*(zmaxmax-zminmin), # floor area
-          2*(xmaxmax-xminmin)+2*(zmaxmax-zminmin), # circumference
-          (xmaxmax-xminmin)*(ymaxmax-yminmin)*(zmaxmax-zminmin), # bounding volume
-          (2*(xmaxmax-xminmin)+2*(zmaxmax-zminmin))*(ymaxmax-yminmin), # bounding wall
-        )
-        print(i)
-      except Exception:
-        pass
-        #stats[
-      '''
 
     with open(d+'/'+e, 'r') as f:
-      n += 1
-
       WORKERS_NEEDED = None
       PRODUCTION = []
       CONSUMPTION = []
       CONSUMPTION_PER_SECOND = []
       
       # building phase stuff
-      #COST_WORK_BUILDING_NODE = [] # taken from bboxes
-      #COST_WORK_VEHICLE_STATION_ACCORDING_NODE = [] # taken from bboxes
-      #COST_WORK_VEHICLE_STATION = [] # defined explicitly in file
-
       autos = {}
       nodes = set()
-
-      '''
-Airplane parking 30m	242	21	16	12					
-Medium voltage switch	43	1,7	1,3	1			0,85		0,18
-Gas station	125	6,3	4,9	3,9			4,4		
-Big wind power plant	689	3,2	2,5	2			17	2,9	1,9
-      '''
 
       def handle_autos():
         #print('handle_autos: ' + str(autos) + ' ' + str(nodes))
@@ -318,14 +231,8 @@ Big wind power plant	689	3,2	2,5	2			17	2,9	1,9
             a = auto_dict[auto]
             # Ground, Walls, Volume
             factor = g*a[0] + w*a[1] + v*a[2]
-            #print(factor)
-
             for i in range(len(costs)):
               costs[i] += mul*factor*a[i+3]
-
-          #print(auto, weight)
-          pass
-        pass
 
       for line in f.readlines():
         p = line.split()
@@ -363,10 +270,6 @@ Big wind power plant	689	3,2	2,5	2			17	2,9	1,9
           # new building phase
           # $COST_WORK SOVIET_CONSTRUCTION_GROUNDWORKS 0.0
           # $COST_WORK SOVIET_CONSTRUCTION_SKELETON_CASTING,0,1.0
-          #COST_WORK_BUILDING_NODE = []
-          #COST_WORK_VEHICLE_STATION_ACCORDING_NODE = []
-          #COST_WORK_VEHICLE_STATION = []
-          
           handle_autos()
           autos = {}
           nodes = set()
@@ -374,22 +277,13 @@ Big wind power plant	689	3,2	2,5	2			17	2,9	1,9
           # $COST_RESOURCE_AUTO ground_asphalt ,1.0
           # $COST_RESOURCE_AUTO wall_steel 1.0
           # $COST_RESOURCE_AUTO tech_steel 0.8
-          #ps = p[1].split('_')
-          #pos = autos.index(p[1])
-          #auto_mask = auto_mask[:pos] + '1' + auto_mask[pos+1:]
-          #COST_RESOURCE_AUTO.add(p[1])
-          #COST_RESOURCE_AUTO2[e].add(p[1])
           autos[p[1]] = float(p[2])
-          pass
         elif p[0] == '$COST_RESOURCE':
           # $COST_RESOURCE workers 3000
           costs[fields.index(p[1])] += float(p[2])
-          #print(p)
-          pass
         elif p[0] == '$COST_WORK_BUILDING_NODE':
           # $COST_WORK_BUILDING_NODE concreteShape7
           nodes.add(p[1])
-          pass
         elif p[0] == '$COST_WORK_VEHICLE_STATION_ACCORDING_NODE':
           # $COST_WORK_VEHICLE_STATION_ACCORDING_NODE polySurfaceShape278
           pass
@@ -400,13 +294,11 @@ Big wind power plant	689	3,2	2,5	2			17	2,9	1,9
           # $COST_WORK_BUILDING_KEYWORD $concrete
           # $COST_WORK_BUILDING_KEYWORD $steel
           # $COST_WORK_BUILDING_KEYWORD $tech
-          # this just matches on the start of the node names
-          # unless the keyword is $all
+          # this just matches on the start of the node names, unless the keyword is $all
           keyword = p[1][1:]
           if keyword == 'all':
             for k in shapes.keys():
               nodes.add(k)
-              #print('all')
           else:
             n = len(keyword)
             for k in shapes.keys():
@@ -420,33 +312,9 @@ Big wind power plant	689	3,2	2,5	2			17	2,9	1,9
           # print stuff we missed
           print(e, p)
 
-
       handle_autos()
       costs_dict[e] = costs
 
-      #if WORKERS_NEEDED and PRODUCTION:
-      #  print(e, WORKERS_NEEDED, str(CONSUMPTION), '->', PRODUCTION)
-      #COST_RESOURCE_AUTO3[str(len(COST_RESOURCE_AUTO2[e]))+','.join(sorted(list(COST_RESOURCE_AUTO2[e])))] = e
-      #COST_RESOURCE_AUTO3[str(len(COST_RESOURCE_AUTO2[e]))+auto_mask] = e
-      #COST_RESOURCE_AUTO2[e] = list(COST_RESOURCE_AUTO2[e])
-      #print(auto_mask)
-
-#for g in goods:
-#  print(g)
-#print(COST_WORK_BUILDING_NODE)
-#print(n, len(COST_WORK_BUILDING_NODE), len(goods))
-#print(COST_RESOURCE_AUTO)
-#print(len(COST_RESOURCE_AUTO))
-import json
-#print(json.dumps(sorted(COST_RESOURCE_AUTO2.items(), key= lambda x:-len(x[1])), indent=4))
-#print(COST_RESOURCE_AUTO3)
-from collections import OrderedDict
-#print(json.dumps(OrderedDict(sorted(COST_RESOURCE_AUTO3.items())), indent=4))
-#print(len(COST_RESOURCE_AUTO3))
-#for k,v in sorted(COST_RESOURCE_AUTO3.items()):
-#  print("# %s -> %s" % (v, k[1:]))
-#print(json.dumps(outstats[RE.index('playground_tenis2.ini')], indent=4))
-#print(json.dumps(costs_dict, indent=4))
 for k, v in costs_dict.items():
   print('%37s %s' % (k, ' '.join(['%7.1f' % (round(vv*10)*0.1) for vv in v])))
 print(len(costs_dict))
