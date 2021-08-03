@@ -6,7 +6,6 @@ from collections import OrderedDict
 
 def get_costs():
   d = 'media_soviet/buildings_types'
-  goods = set()
 
   # crap to ignore
   ignore = [
@@ -197,9 +196,9 @@ def get_costs():
 
       with open(d+'/'+e, 'r') as f:
         WORKERS_NEEDED = None
-        PRODUCTION = []
-        CONSUMPTION = []
-        CONSUMPTION_PER_SECOND = []
+        PRODUCTION = {}
+        CONSUMPTION = {}
+        CONSUMPTION_PER_SECOND = {}
 
         # building phase stuff
         autos = {}
@@ -250,20 +249,17 @@ def get_costs():
             WORKERS_NEEDED = int(p[1])
           elif p[0] == '$PRODUCTION':
             # $PRODUCTION gravel 5.5
-            PRODUCTION.append((p[1], float(p[2])))
-            goods.add(p[1])
+            PRODUCTION[p[1]] = float(p[2])
           elif p[0] == '$CONSUMPTION':
             if len(p) >= 3:
               # $CONSUMPTION rawgravel 8.0
-              CONSUMPTION.append((p[1], float(p[2])))
-              goods.add(p[1])
+              CONSUMPTION[p[1]] = float(p[2])
             else:
               # $CONSUMPTION 1
               pass
           elif p[0] == '$CONSUMPTION_PER_SECOND':
             # $CONSUMPTION_PER_SECOND eletric 0.4
-            CONSUMPTION_PER_SECOND.append((p[1], float(p[2])))
-            goods.add(p[1])
+            CONSUMPTION_PER_SECOND[p[1]] = float(p[2])
           elif p[0] == '$CITIZEN_ABLE_SERVE':
             # $CITIZEN_ABLE_SERVE 7
             pass
@@ -314,9 +310,20 @@ def get_costs():
             print(e, p)
 
         handle_autos()
-        costs_dict[e[:-4]] = costs
+        c = {}
+        for i in range(len(fields)):
+          if costs[i] > 0:
+            c[fields[i]] = costs[i]
+        #dict(zip(fields, costs))
+        costs_dict[e[:-4].replace('_','')] = {
+          'costs': c, #costs,
+          'workers': WORKERS_NEEDED,
+          'consumption': CONSUMPTION,
+          'consumption_per_second': CONSUMPTION_PER_SECOND,
+          'production': PRODUCTION,
+        }
 
-  return costs_dict
+  return fields, costs_dict
 
 #costs_dict = get_costs()
 #for k, v in costs_dict.items():
