@@ -98,39 +98,39 @@ x0 = {
 # minimize number of workers in powerplantcoal
 #print('min: workers_powerplantcoal_%i;' % tmax)
 
-#print(f'min: ' + ' + '.join([f'workers_powerplantcoal_{t} + workers_powerplantcoalv2_{t} + building_powerplantsolar_{t}' for t in range(tmax)]) + ';')
-#print(f'max: coal_{tmax};')
-#print(f'max: workers_powerplantcoal_{tmax};')
-#print(f'max: eletric_{tmax};')
+#print(f'min: ' + ' + '.join([f'workers_powerplantcoal_{t:03d} + workers_powerplantcoalv2_{t:03d} + building_powerplantsolar_{t:03d}' for t in range(tmax)]) + ';')
+#print(f'max: coal_{tmax:03d};')
+#print(f'max: workers_powerplantcoal_{tmax:03d};')
+#print(f'max: eletric_{tmax:03d};')
 
 # Value of objective function: 2449.17581189
-#print(f'max: ' + ' + '.join([f'building_powerplantnuclearsingle_{t} + workers_powerplantnuclearsingle_{t}' for t in range(tmax+1)]) + ';')
+#print(f'max: ' + ' + '.join([f'building_powerplantnuclearsingle_{t:03d} + workers_powerplantnuclearsingle_{t:03d}' for t in range(tmax+1)]) + ';')
 
 # Value of objective function: 29.87302305
-#print(f'max: ' + ' + '.join([f'building_powerplantnuclearsingle_{t}' for t in range(tmax+1)]) + ';')
-#print(f'max: building_powerplantnuclearsingle_{tmax};')
-#print(f'max: ' + ' + '.join([f'invested_workers_powerplantcoal_{t}' for t in range(tmax+1)]) + ';')
-print(f'max: gravel_{tmax};')
+#print(f'max: ' + ' + '.join([f'building_powerplantnuclearsingle_{t:03d}' for t in range(tmax+1)]) + ';')
+#print(f'max: building_powerplantnuclearsingle_{tmax:03d};')
+#print(f'max: ' + ' + '.join([f'invested_workers_powerplantcoal_{t:03d}' for t in range(tmax+1)]) + ';')
+print(f'max: concrete_{tmax:03d};')
 
 for k,v in x0.items():
   if k in buildings:
-    print(f'building_{k}_0 = {x0[k]};')
+    print(f'building_{k}_000 = {x0[k]};')
   else:
-    print(f'{k}_0 = {x0[k]};')
+    print(f'{k}_000 = {x0[k]};')
   # set up investments for initial buildings
   if k in buildings.keys():
     for g,amount in buildings[k]['costs'].items():
-      print(f'invested_{g}_{k}_0 = {amount*x0[k]};')
+      print(f'invested_{g}_{k}_000 = {amount*x0[k]};')
 
 for g in goods:
   if g not in x0:
-    print(f'{g}_0 = 0;')
+    print(f'{g}_000 = 0;')
 
 for b,d in buildings.items():
   if b not in x0:
-    print(f'building_{b}_0 = 0;')
+    print(f'building_{b}_000 = 0;')
     for g,amount in d['costs'].items():
-      print(f'invested_{g}_{b}_0 = 0;')
+      print(f'invested_{g}_{b}_000 = 0;')
 
 ints = []
 for t in range(tmax+1):
@@ -138,75 +138,75 @@ for t in range(tmax+1):
   prods = {}
   cons = {}
 
-  #print(f'building_powerplantnuclearsingle_{t} <= 1;')
+  #print(f'building_powerplantnuclearsingle_{t:03d} <= 1;')
 
   #if t > tmax/2:
-  #  print(f'eletric_{t} >= {6000*t};')
+  #  print(f'eletric_{t:03d} >= {6000*t};')
 
   for b,d in buildings.items():
     max_workers = d["workers"]
     if max_workers is not None:
       # can't employ more workers than the current number of buildings allows
-      w = f'workers_{b}_{t}'
+      w = f'workers_{b}_{t:03d}'
       ws.append(w)
-      print(f'{w} <= {shifts*max_workers} building_{b}_{t};')
+      print(f'{w} <= {shifts*max_workers} building_{b}_{t:03d};')
       # production is given by number of workers employed, and the number of days (dT)
       for g,amount in d['production'].items():
-        print(f'prod_{b}_{g}_{t} = {dT*amount/shifts} {w};')
+        print(f'prod_{b}_{g}_{t:03d} = {dT*amount/shifts} {w};')
         if g not in prods:
           prods[g] = set()
         prods[g].add(b)
       for g,amount in d['consumption'].items():
-        print(f'con_{b}_{g}_{t} = {dT*amount/shifts} {w};')
+        print(f'con_{b}_{g}_{t:03d} = {dT*amount/shifts} {w};')
         if g not in cons:
           cons[g] = set()
         cons[g].add(b)
 
     if t > 0:
       # number of buildings never decreases
-      print(f'building_{b}_{t} >= building_{b}_{t-1};')
+      print(f'building_{b}_{t:03d} >= building_{b}_{t-1:03d};')
 
     # number of buildings can't exceed the amount of resources invested so far
     if t > 0:
       for g,a in d['costs'].items():
-        print(f'invested_{g}_{b}_{t} >= {a} building_{b}_{t};')
-        #print(f'invested_{g}_{b}_{t} >= invested_{g}_{b}_{t-1};')
+        print(f'invested_{g}_{b}_{t:03d} >= {a} building_{b}_{t:03d};')
+        #print(f'invested_{g}_{b}_{t:03d} >= invested_{g}_{b}_{t-1:03d};')
 
     # these have to be at the end of the program for some reason
-    ints.append(f'int building_{b}_{t};')
+    ints.append(f'int building_{b}_{t:03d};')
 
   for g,bs in prods.items():
-    prodstr = ' + '.join([f'prod_{b}_{g}_{t}' for b in bs])
-    print(f'prod_{g}_{t} = {prodstr};')
+    prodstr = ' + '.join([f'prod_{b}_{g}_{t:03d}' for b in bs])
+    print(f'prod_{g}_{t:03d} = {prodstr};')
 
   for g,bs in cons.items():
-    constr = ' + '.join([f'con_{b}_{g}_{t}' for b in bs])
-    print(f'con_{g}_{t} = {constr};')
+    constr = ' + '.join([f'con_{b}_{g}_{t:03d}' for b in bs])
+    print(f'con_{g}_{t:03d} = {constr};')
 
   for g in goods:
     if g not in prods:
-      print(f'prod_{g}_{t} = 0;')
+      print(f'prod_{g}_{t:03d} = 0;')
     if g not in cons:
-      print(f'con_{g}_{t} = 0;')
+      print(f'con_{g}_{t:03d} = 0;')
 
   if t > 0:
     for g in goods:
       if g == 'workers':
-        print(f'workers_{t} = workers_{t-1} + prod_workers_{t-1};')
-        ws.append(f'{dT} invested_workers_{b}_{t} - {dT} invested_workers_{b}_{t-1}')
+        print(f'workers_{t:03d} = workers_{t-1:03d} + prod_workers_{t-1:03d};')
+        ws.append(f'{dT} invested_workers_{b}_{t:03d} - {dT} invested_workers_{b}_{t-1:03d}')
       else:
         prod = []
         invs = []
         for b,d in buildings.items():
           if g in d['costs']:
             # subtract difference in investment
-            invs.append(f' + invested_{g}_{b}_{t-1} - invested_{g}_{b}_{t}')
+            invs.append(f' + invested_{g}_{b}_{t-1:03d} - invested_{g}_{b}_{t:03d}')
 
         invs = ''.join(invs)
-        print(f'{g}_{t} = {g}_{t-1} + prod_{g}_{t-1} - con_{g}_{t-1} {invs};')
+        print(f'{g}_{t:03d} = {g}_{t-1:03d} + prod_{g}_{t-1:03d} - con_{g}_{t-1:03d} {invs};')
 
   ws = ' + '.join(ws)
-  print(f'{ws} <= workers_{t};')
+  print(f'{ws} <= workers_{t:03d};')
 
 
 for i in ints:
