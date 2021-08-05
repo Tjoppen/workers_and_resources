@@ -12,6 +12,22 @@ import json
 
 building_fields, buildings = get_costs()
 
+# same order as building_fields
+# computed from statistics from the game
+# within +-3% of actual values
+prices = [
+      8.6008,
+     30.9588,
+     38.6777,
+     46.7298,
+     51.0958,
+     42.0923,
+    443.5262,
+    753.6935,
+   1304.4270,
+     46.4380,
+]
+
 # strip 'vehicles' from all buildings
 dels = []
 for k in buildings.keys():
