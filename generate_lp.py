@@ -2,23 +2,47 @@
 from workers_and_resources import get_costs
 import json
 
+# eletric = MWh  (24 t coal -> 1400 MWh)
+# wires = MW
+# STORAGE_LIVING_AUTO -> housing capacity
+
+# https://steamcommunity.com/app/784150/discussions/0/1642042464758987302/
+# workday = 8h when building
+# power plants = 24h "workday" (3 shifts)
+
 building_fields, buildings = get_costs()
 
-b2 = {}
+# strip 'vehicles' from all buildings
+dels = []
+for k in buildings.keys():
+  if 'vehicles' in buildings[k]['consumption']:
+    del buildings[k]['consumption']['vehicles']
+  if 'vehicles' in buildings[k]['production']:
+    del buildings[k]['production']['vehicles']
+
+  if len(buildings[k]['consumption']) == 0 and \
+      len(buildings[k]['consumption_per_second']) == 0 and \
+      len(buildings[k]['production']) == 0:    
+    dels.append(k)
+
+for d in dels:
+  del buildings[d]
+
+'''b2 = {}
 for k,v in buildings.items():
   if 'powerplant' in k:
     b2[k] = v
 
-buildings = b2
+buildings = b2'''
 
-#buildings = {'powerplantcoal': buildings['powerplantcoal']}
 #print(json.dumps(buildings, indent=4))
+#print(len(buildings))
 #exit(0)
 
 goods = set(building_fields)
 goods.add('workers')
-goods.add('rubles')
-goods.add('dollars')
+#goods.add('rubles')
+#goods.add('dollars')
 
 for k,v in buildings.items():
   for q in ['consumption', 'consumption_per_second', 'production']:
@@ -30,32 +54,47 @@ goods = sorted(goods)
 #print(goods)
 #exit(0)
 
-tmax = 10
+tmax = 8
+dT = 100    # time between t's in days
+shifts = 3  # number of shifts in buildings
 x0 = {
-  'rubles': 1000000,
-  'dollars': 1000000,
-  'workers': 100,
-  'powerplantcoal': 1,
-  'coal': 10000,
-  'concrete': 100000,
-  'gravel': 100000,
-  'asphalt': 10000,
-  'steel': 10000,
-  'mcomponents': 300,
-  'ecomponents': 300,
-  'nuclearfuel': 10,
-  'vehicles': 100, # nuclear plants need this for some reason
+  #'rubles': 1000000,
+  #'dollars': 1000000,
+  'workers': 1000,
+  #'powerplantcoal': 1,
+  #'cement': 1000,
+
+  # gravelmine, gravelprocessing, concreteplant
+  # cementplant, coalmine, coalprocessing, woodcuttingpost
+  # sawmill
+  'concrete': 2 + 110 + 25 + 739, # + 250 + 361 + 9 + 28,
+  'gravel': 2 + 13 + 19 + 70, # + 10 + 66 + 7 + 22,
+  'asphalt': 1 + 11 + 15 + 56 + 8 + 53 + 6 + 17,
+  'boards': 21 + 75 + 11 + 26,
+  'steel': 43 + 30 + 255 + 75 + 201 + 2 + 12,
+  'mcomponents': 3, # 3 is enough for one mechanicalcomponentsfactory #4 + 3 + 6 + 4 + 5,
+  #'ecomponents': 1000,
+  'bricks': 113 + 61, # + 47, # bricks are needed to make bricks
+  #'oil': 1000, # oilmine.workers = null
+  #'plants': 1000, # farm.workers = null
 }
 
 # minimize number of workers in powerplantcoal
 #print('min: workers_powerplantcoal_%i;' % tmax)
 
 #print(f'min: ' + ' + '.join([f'workers_powerplantcoal_{t} + workers_powerplantcoalv2_{t} + building_powerplantsolar_{t}' for t in range(tmax)]) + ';')
-print(f'max: coal_{tmax};')
+#print(f'max: coal_{tmax};')
 #print(f'max: workers_powerplantcoal_{tmax};')
 #print(f'max: eletric_{tmax};')
-#print(f'max: ' + ' + '.join([f'powerplantcoal_{t}' for t in range(tmax+1)]) + ';')
+
+# Value of objective function: 2449.17581189
+#print(f'max: ' + ' + '.join([f'building_powerplantnuclearsingle_{t} + workers_powerplantnuclearsingle_{t}' for t in range(tmax+1)]) + ';')
+
+# Value of objective function: 29.87302305
+#print(f'max: ' + ' + '.join([f'building_powerplantnuclearsingle_{t}' for t in range(tmax+1)]) + ';')
+#print(f'max: building_powerplantnuclearsingle_{tmax};')
 #print(f'max: ' + ' + '.join([f'invested_workers_powerplantcoal_{t}' for t in range(tmax+1)]) + ';')
+print(f'max: gravel_{tmax};')
 
 for k,v in x0.items():
   if k in buildings:
@@ -82,25 +121,27 @@ for t in range(tmax+1):
   ws = []
   prods = {}
   cons = {}
-  
-  if t > tmax/2:
-    print(f'eletric_{t} >= {6000*t};')
-  
+
+  #print(f'building_powerplantnuclearsingle_{t} <= 1;')
+
+  #if t > tmax/2:
+  #  print(f'eletric_{t} >= {6000*t};')
+
   for b,d in buildings.items():
     max_workers = d["workers"]
     if max_workers is not None:
       # can't employ more workers than the current number of buildings allows
       w = f'workers_{b}_{t}'
       ws.append(w)
-      print(f'{w} <= {max_workers} building_{b}_{t};')
-      # production is given by number of workers employed
+      print(f'{w} <= {shifts*max_workers} building_{b}_{t};')
+      # production is given by number of workers employed, and the number of days (dT)
       for g,amount in d['production'].items():
-        print(f'prod_{b}_{g}_{t} = {amount} {w};')
+        print(f'prod_{b}_{g}_{t} = {dT*amount/shifts} {w};')
         if g not in prods:
           prods[g] = set()
         prods[g].add(b)
       for g,amount in d['consumption'].items():
-        print(f'con_{b}_{g}_{t} = {amount} {w};')
+        print(f'con_{b}_{g}_{t} = {dT*amount/shifts} {w};')
         if g not in cons:
           cons[g] = set()
         cons[g].add(b)
@@ -135,8 +176,8 @@ for t in range(tmax+1):
   if t > 0:
     for g in goods:
       if g == 'workers':
-        print(f'{g}_{t} = {g}_{t-1} + prod_{g}_{t-1};')
-        ws.append(f'invested_workers_{b}_{t} - invested_workers_{b}_{t-1}')
+        print(f'workers_{t} = workers_{t-1} + prod_workers_{t-1};')
+        ws.append(f'{dT} invested_workers_{b}_{t} - {dT} invested_workers_{b}_{t-1}')
       else:
         prod = []
         invs = []
@@ -146,7 +187,6 @@ for t in range(tmax+1):
             invs.append(f' + invested_{g}_{b}_{t-1} - invested_{g}_{b}_{t}')
 
         invs = ''.join(invs)
-        #print(f'{g}_{t} = {g}_{t-1} + prod_{g}_{t-1} - con_{g}_{t-1} {invs};')
         print(f'{g}_{t} = {g}_{t-1} + prod_{g}_{t-1} - con_{g}_{t-1} {invs};')
 
   ws = ' + '.join(ws)
@@ -155,14 +195,4 @@ for t in range(tmax+1):
 
 for i in ints:
   print(i)
-
-#for k, v in buildings.items():
-#    print('%33s %s' % (k, ' '.join(['%7.1f' % (round(vv*10)*0.1) for vv in v])))
-#print(len(buildings))
-#print(buildings)
-#print(json.dumps(buildings, indent=4))
-#print(len(goods))
-#for k in buildings.keys():
-#  if 'coal' in k:
-#    print(k)
 
