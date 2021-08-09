@@ -10,6 +10,9 @@ import json
 # workday = 8h when building
 # power plants = 24h "workday" (3 shifts)
 
+# https://steamcommunity.com/app/784150/discussions/0/2966141980983025345/
+# power = 60h days?
+
 building_fields, buildings = get_costs()
 
 # same order as building_fields
@@ -110,7 +113,7 @@ x0 = {
 #print(f'max: ' + ' + '.join([f'building_powerplantnuclearsingle_{t:03d}' for t in range(tmax+1)]) + ';')
 #print(f'max: building_powerplantnuclearsingle_{tmax:03d};')
 #print(f'max: ' + ' + '.join([f'invested_workers_powerplantcoal_{t:03d}' for t in range(tmax+1)]) + ';')
-print(f'max: concrete_{tmax:03d};')
+print(f'max: gravel_{tmax:03d};')
 
 for k,v in x0.items():
   if k in buildings:
