@@ -73,7 +73,7 @@ goods = sorted(goods)
 #print(goods)
 #exit(0)
 
-tmax = 9
+tmax = 10
 dT = 100    # time between t's in days
 shifts = 3  # number of shifts in buildings
 x0 = {
