@@ -58,5 +58,5 @@ for matrixname,columns,title,strip,i in zip(['B','W','N','R'], [buildings, worke
     colnames = ';'.join([f"'{n.replace('_',underscore)}'" for n in labels])
     print(f"colnames{matrixname} = [{colnames}];")
     print(f"figure({i}); plot(t(1:size({matrixname},1)), {matrixname},'x-'); legend(colnames{matrixname}, 'location', 'northwest'); title('{title}');")
-    print(f"print('{title}.png');")
+    #print(f"print('{title}.png');")
 
