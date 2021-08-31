@@ -47,32 +47,15 @@ for k in buildings.keys():
 for d in dels:
   del buildings[d]
 
-'''b2 = {}
-for k,v in buildings.items():
-  if 'powerplant' in k:
-    b2[k] = v
-
-buildings = b2'''
-
-#print(json.dumps(buildings, indent=4))
-#print(len(buildings))
-#exit(0)
-
 goods = set(building_fields)
 goods.add('workers')
-#goods.add('rubles')
-#goods.add('dollars')
 
 for k,v in buildings.items():
   for q in ['consumption', 'consumption_per_second', 'production']:
     for g in v[q].keys():
       goods.add(g)
 
-#  print(','.join([str(vv) for vv in v['costs']]))
 goods = sorted(goods)
-#print(goods)
-#exit(0)
-
 tmax = 10
 dT = 100    # time between t's in days
 shifts = 3  # number of shifts in buildings
@@ -98,21 +81,6 @@ x0 = {
   #'plants': 1000, # farm.workers = null
 }
 
-# minimize number of workers in powerplantcoal
-#print('min: workers_powerplantcoal_%i;' % tmax)
-
-#print(f'min: ' + ' + '.join([f'workers_powerplantcoal_{t:03d} + workers_powerplantcoalv2_{t:03d} + building_powerplantsolar_{t:03d}' for t in range(tmax)]) + ';')
-#print(f'max: coal_{tmax:03d};')
-#print(f'max: workers_powerplantcoal_{tmax:03d};')
-#print(f'max: eletric_{tmax:03d};')
-
-# Value of objective function: 2449.17581189
-#print(f'max: ' + ' + '.join([f'building_powerplantnuclearsingle_{t:03d} + workers_powerplantnuclearsingle_{t:03d}' for t in range(tmax+1)]) + ';')
-
-# Value of objective function: 29.87302305
-#print(f'max: ' + ' + '.join([f'building_powerplantnuclearsingle_{t:03d}' for t in range(tmax+1)]) + ';')
-#print(f'max: building_powerplantnuclearsingle_{tmax:03d};')
-#print(f'max: ' + ' + '.join([f'invested_workers_powerplantcoal_{t:03d}' for t in range(tmax+1)]) + ';')
 print(f'max: gravel_{tmax:03d};')
 
 for k,v in x0.items():
