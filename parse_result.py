@@ -21,7 +21,7 @@ def print_values():
   print(f'{last_v} = [{outvalues}];')
   if last_v[:8] == 'building':
     buildings.append(last_v)
-  elif last_v[:7] == 'workers':
+  elif last_v[:8] == 'workers_':
     workers.append(last_v)
   elif last_v[:4] == 'new_':
     news.append(last_v)
