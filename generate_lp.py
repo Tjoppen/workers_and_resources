@@ -2,6 +2,35 @@
 from workers_and_resources import get_costs
 import json
 
+'''
+=
+tmax=7
+Model size:     3843 constraints,    4181 variables,        12456 non-zeros.
+Value of objective function: 140211.41061359
+real    1m33,281s
+
+>=
+tmax=7
+Model size:     3843 constraints,    4537 variables,        13122 non-zeros.
+Value of objective function: 140211.41061359
+real    0m14,210s
+
+=
+tmax=8
+Model size:     4382 constraints,    4769 variables,        14275 non-zeros.
+Row-types:       245 LE,              395 GE,                3742 EQ.
+Value of objective function: 173211.41061357
+real    4m44,473s
+
+>=
+tmax=8
+Model size:     4382 constraints,    5171 variables,        15033 non-zeros.
+Row-types:       245 LE,             2780 GE,                1357 EQ.
+Value of objective function: 173211.41061357
+real    0m31,289s
+'''
+
+
 # eletric = MWh  (24 t coal -> 1400 MWh)
 # wires = MW
 # STORAGE_LIVING_AUTO -> housing capacity
@@ -56,7 +85,7 @@ for k,v in buildings.items():
       goods.add(g)
 
 goods = sorted(goods)
-tmax = 10
+tmax = 8
 dT = 100    # time between t's in days
 shifts = 3  # number of shifts in buildings
 x0 = {
@@ -140,12 +169,14 @@ for t in range(tmax+1):
     # number of buildings can't exceed the amount of resources invested so far
     if t > 0:
       for g,a in d['costs'].items():
-        print(f'invested_{g}_{b}_{t:03d} >= {a} building_{b}_{t:03d};')
-        #print(f'invested_{g}_{b}_{t:03d} >= invested_{g}_{b}_{t-1:03d};')
+        if g == 'workers':
+          print(f'invested_{g}_{b}_{t:03d} >= {a} building_{b}_{t:03d};')
+        else:
+          print(f'invested_{g}_{b}_{t:03d} = {a} building_{b}_{t:03d};')
 
     # these have to be at the end of the program for some reason
     if t != tmax:
-      ints.append(f'bin new_{b}_{t:03d};')
+      ints.append(f'int new_{b}_{t:03d};')
 
   for g,bs in prods.items():
     prodstr = ' + '.join([f'prod_{b}_{g}_{t:03d}' for b in bs])
