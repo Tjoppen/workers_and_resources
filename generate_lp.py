@@ -72,6 +72,8 @@ for k in buildings.keys():
       len(buildings[k]['consumption_per_second']) == 0 and \
       len(buildings[k]['production']) == 0:    
     dels.append(k)
+  elif k not in ['gravelmine', 'gravelprocessing', 'mechanicalcomponentsfactory']:
+    dels.append(k)
 
 for d in dels:
   del buildings[d]
@@ -196,7 +198,7 @@ for t in range(tmax+1):
     for g in goods:
       if g == 'workers':
         print(f'workers_{t:03d} = workers_{t-1:03d} + prod_workers_{t-1:03d};')
-        ws.append(f'{dT} invested_workers_{b}_{t:03d} - {dT} invested_workers_{b}_{t-1:03d}')
+        ws.append(f'{1/dT} invested_workers_{b}_{t:03d} - {1/dT} invested_workers_{b}_{t-1:03d}')
       else:
         prod = []
         invs = []
