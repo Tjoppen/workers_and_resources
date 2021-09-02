@@ -168,12 +168,13 @@ for t in range(tmax+1):
       # number of buildings never decreases
       print(f'building_{b}_{t:03d} = building_{b}_{t-1:03d} + new_{b}_{t-1:03d};')
 
-    # number of buildings can't exceed the amount of resources invested so far
     if t > 0:
       for g,a in d['costs'].items():
         if g == 'workers':
+          # allow accumulating workdays on construction projects
           print(f'invested_{g}_{b}_{t:03d} >= {a} building_{b}_{t:03d};')
         else:
+          # all other resources are subtracted as one lump
           print(f'invested_{g}_{b}_{t:03d} = {a} building_{b}_{t:03d};')
 
     # these have to be at the end of the program for some reason
