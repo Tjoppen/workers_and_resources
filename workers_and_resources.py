@@ -15,6 +15,9 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+# This module does the actual parsing of .ini and .bbox files from the game
+# The formats have been reversed by me by simple looking at the files and making educated guesses
+# The one exception is auto_dict[] which is based on game code gratiously provided by Peter Adamcik at 3DIVISION, see cost_resource_auto.txt
 import os
 import struct
 import json
