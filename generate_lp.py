@@ -87,8 +87,8 @@ for k,v in buildings.items():
       goods.add(g)
 
 goods = sorted(goods)
-tmax = 8
-dT = 100    # time between t's in days
+tmax = 16
+dT = 10    # time between t's in days
 shifts = 3  # number of shifts in buildings
 x0 = {
   #'rubles': 1000000,
