@@ -9,7 +9,16 @@ Based on the state of the game in July 2021, may no longer work. Patches welcome
 ![Screenshot of terminal output and Octave output plots](https://github.com/Tjoppen/workers_and_resources/assets/5117509/39473e77-24fa-4fe0-9406-b9932bf85513)
 
 
-## Dependencies:
+## Dependencies
+
+### Debian
+
+Probably also works on Ubuntu:
+
+`sudo apt install octave lp-solve`
+
+### macOS
+
 - Octave: `brew install octave`
 - lp_solve: `brew install lp_solve`
 
