@@ -6,6 +6,22 @@ Also generates `lp_solve` programs based on said coefficients and plots results 
 Can be used for formulating build orders and other planning tasks in the game.
 Based on the state of the game in July 2021, may no longer work. Patches welcome!
 
+![Screenshot of terminal output and Octave output plots](./screenshots/39473e77-24fa-4fe0-9406-b9932bf85513.png)
+
+
+## Dependencies
+
+### Debian
+
+Probably also works on Ubuntu:
+
+`sudo apt install octave lp-solve`
+
+### macOS
+
+- Octave: `brew install octave`
+- lp_solve: `brew install lp_solve`
+
 ## License stuff
 
 My code is AGPL.
