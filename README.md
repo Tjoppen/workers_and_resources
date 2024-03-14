@@ -6,7 +6,7 @@ Also generates `lp_solve` programs based on said coefficients and plots results 
 Can be used for formulating build orders and other planning tasks in the game.
 Based on the state of the game in July 2021, may no longer work. Patches welcome!
 
-![Screenshot of terminal output and Octave output plots](https://github.com/Tjoppen/workers_and_resources/assets/5117509/39473e77-24fa-4fe0-9406-b9932bf85513)
+![Screenshot of terminal output and Octave output plots](./screenshots/39473e77-24fa-4fe0-9406-b9932bf85513.png)
 
 
 ## Dependencies
